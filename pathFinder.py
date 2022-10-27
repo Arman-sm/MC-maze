@@ -7,8 +7,8 @@ from libs import *
 class pathfinder:
 	maze: ground
 	server: Minecraft
-	pastPosition: Vec2 = Vec2(9,10)
 	position: Vec2 = Vec2(9, 10)
+	pastPosition: Vec2 = Vec2(9,10)
 	currentBranch: int = float("inf")
 	#If the program has to do all the cycling stuff
 	autoPilot: bool = True

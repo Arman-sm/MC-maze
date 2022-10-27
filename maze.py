@@ -13,7 +13,8 @@ commands = [
 			"-s":"small",
 			"-w":"stone",
 			"-p":"air",
-			"--clean":False
+			"--clean":False,
+			"--solve":False
 		}
 	],
 	[
@@ -22,7 +23,8 @@ commands = [
 			"-":False,
 			"-d":"0",
 			"-o":"~,~,~",
-			"--clean":False
+			"--clean":False,
+			"--solve":False
 		}
 	]
 ]
@@ -31,7 +33,7 @@ def colorization(bot, blockType: block.Block | int = 251, blockVariationCount: i
 	return block.Block(blockType if isinstance(blockType, int) else blockType.id, bot.branch % blockVariationCount + 1)
 
 server = Minecraft.create("SERVER_ADDRESS", 4711, "USERNAME")
-server.setBlock(25,37,146,57,0)
+
 #Player position calculation
 def calcOffset() -> tuple[int]:
 	return tuple(server.player.getTilePos())
@@ -82,18 +84,18 @@ class bot:
 	def cycle(self):
 		#Pulsing the sub_branches if the bot is not active
 		if not self.isActive:
-			results = []
-			for idx, child in enumerate(self.sub_branches):
-				match child.cycle():
+			for idx, subBranch in enumerate(self.sub_branches):
+				match subBranch.cycle():
 					case False:
 						del self.sub_branches[idx]
+						print(f"deleted branch {self.branch+1}")
 					case True:
 						return True
-				results.append(child.cycle())
 			else:
 				print(f"branch {self.branch} has gotten pulsed successfully")
 				#Sending the destruction signal if there are no sub-branches left
-				if len(self.sub_branches) == 0:
+				if not self.sub_branches:
+					print(f"branch {self.branch} send destruction signal because of not having any sub-branches")
 					return False
 			return
 
@@ -218,12 +220,12 @@ while True:
 				if command["tags"]["--bot"] or command["tags"]["--solve"]:
 					botFather: bot = botGroup(playGround=playGround, start=Vec2(offset[0]+1, offset[2]), delay=0, clean=command["tags"]["--clean"])
 					if command["tags"].get("--solve", False):
-						pathfinder(
+						position=pathfinder(
 							botGround, server,
 							dive(
 								botFather,
 								lambda item: item.sub_branches[0],
-								lambda item: len(item.sub_branches) == 0
+								lambda item: not item.sub_branches
 							).position
 						)
 
@@ -243,7 +245,7 @@ while True:
 				if command["tags"].get("--solve", False):
 					pathfinder(
 						botGround, server,
-						dive(
+						position=dive(
 							botFather,
 							lambda item: item.sub_branches[0],
 							lambda item: len(item.sub_branches) == 0
