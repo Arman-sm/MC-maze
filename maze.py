@@ -1,5 +1,5 @@
 from commandManager import *
-from time import sleep
+from time import (sleep, perf_counter)
 from libs import *
 from pathFinder import pathfinder
 
@@ -90,6 +90,7 @@ class bot:
 						del self.sub_branches[idx]
 						print(f"deleted branch {self.branch+1}")
 					case True:
+						self.sub_branches = subBranch
 						return True
 			else:
 				print(f"branch {self.branch} has gotten pulsed successfully")
@@ -173,25 +174,21 @@ def botGroup(playGround: ground, start: Vec2, delay: float | int, clean):
 	
 while True:
 	for msg in server.player.pollChatPosts():
+		startTime = perf_counter()
 		match (command:=bakeCommand(
 				msg.message,
 				commands
 			))["name"]:
 			case "maze":
-				
 				#Calculating the offset if needed
 				if command["tags"]["-"]:
 					offset = calcOffset()
-
 				offset = [numParse(rawNum=raw, baseNum=offset[idx]) for idx, raw in enumerate(commands[0][1]["-o"].split(","))]
-
 				for idx, raw in zip(range(3), command["tags"]["-o"].split(",")):
 					offset[idx] = numParse(rawNum=raw, baseNum=offset[idx])
-
 				# with open("a.txt") as f:
 				# 	global file
 				# 	file = "".join(list(f))
-				
 				#Making the ground
 				playGround: ground = ground(
 					Vec3(*offset),
@@ -216,7 +213,6 @@ while True:
 					server.postToChat("Error: invalid block type")
 					print("Error: invalid block type for ground visualization")
 					continue
-
 				if command["tags"]["--bot"] or command["tags"]["--solve"]:
 					botFather: bot = botGroup(playGround=playGround, start=Vec2(offset[0]+1, offset[2]), delay=0, clean=command["tags"]["--clean"])
 					if command["tags"].get("--solve", False):
@@ -224,33 +220,29 @@ while True:
 							botGround, server,
 							dive(
 								botFather,
-								lambda item: item.sub_branches[0],
+								lambda item: item.sub_branches,
 								lambda item: not item.sub_branches
 							).position
 						)
-
 			case "bot":
 				if command["tags"].get("--offset-automatically", False):
 					offset = (playGround.start.x+1, playGround.height, playGround.start.y)
 				elif command["tags"]["-"]:
 					offset = calcOffset()
-
 				offset = [numParse(rawNum=raw, baseNum=offset[idx]) for idx, raw in enumerate(commands[1][1]["-o"].split(","))]
-
 				for idx, raw in zip(range(3), command["tags"]["-o"].split(",")):
 					offset[idx] = numParse(rawNum=raw, baseNum=offset[idx])
-
 				botFather: bot = botGroup(playGround, Vec2(offset[0], offset[2]), float(command["tags"]["-d"]), command["tags"]["--clean"])
-
 				if command["tags"].get("--solve", False):
 					pathfinder(
 						botGround, server,
 						position=dive(
 							botFather,
-							lambda item: item.sub_branches[0],
-							lambda item: len(item.sub_branches) == 0
+							lambda item: item.sub_branches,
+							lambda item: not item.sub_branches
 						).position
 					)
 			case "exit":
 				exit()
+		print(f"proceed the command in {perf_counter() - startTime:.1f}s")
 	sleep(1)
